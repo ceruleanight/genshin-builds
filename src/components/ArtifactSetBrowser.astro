@@ -23,6 +23,7 @@ type ArtifactSetBrowserData = {
       href: string;
       isWip?: boolean;
       rank?: number;
+      popoverHtml?: string;
     }[];
   }[];
   rarities: number[];
@@ -172,6 +173,7 @@ const noMentionsLabel = t(locale, 'ui', 'No artifact set mentions', undefined, f
                   <a
                     class={`artifact-set-usage-chip character-rarity-${usage.characterRarity}${usage.isWip ? ' is-wip' : ''}`}
                     href={usage.href}
+                    data-usage-popover-html={usage.popoverHtml || undefined}
                   >
                     {(usage.rank || usage.isWip) && (
                       <strong class="usage-rank-number">{usage.isWip ? 'WIP' : usage.rank}</strong>
@@ -194,4 +196,5 @@ const noMentionsLabel = t(locale, 'ui', 'No artifact set mentions', undefined, f
 
 <script>
   import '../scripts/card-filters';
+  import '../scripts/artifact-usage-popover';
 </script>

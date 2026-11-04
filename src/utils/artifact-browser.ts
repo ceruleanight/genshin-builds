@@ -5,8 +5,9 @@ import {
   getWipNoteItems,
   type BuildUsage,
 } from './build-usage';
-import { loadJSON, readJSONFile } from './content';
+import { loadJSON, readJSONFile, toTitleCase } from './content';
 import { getLocale, t } from './i18n';
+import { TranslationHelper } from './translator';
 import { resolveArtifactAssetImage } from './item-assets';
 
 const bonusKeys = ['1p', '2p', '4p'] as const;
@@ -239,6 +240,100 @@ function getArtifactSetFourPieceUsage(locale: any, lang: string) {
   });
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const mainStatSlots = [
+  { key: 'sands', label: 'Sands' },
+  { key: 'goblet', label: 'Goblet' },
+  { key: 'circlet', label: 'Circlet' },
+] as const;
+
+/**
+ * Reads a stat entry (a plain ID, `{ name }`, or a name containing inline
+ * `[[stat:id]]` tokens) and returns its plain display text.
+ */
+function statName(locale: any, translator: TranslationHelper, item: any) {
+  const name = typeof item === 'string' ? item : item?.name;
+
+  if (typeof name !== 'string') return '';
+
+  return name.includes('[[')
+    ? translator.translateNoteText(name)
+    : t(locale, 'stat', name, undefined, false);
+}
+
+/**
+ * Builds the hover card for one character chip: the main stats for the three
+ * artifact slots that vary (Sands, Goblet, Circlet) and the substat priority,
+ * taken from the build the chip links to.
+ */
+function renderUsagePopoverHtml(locale: any, lang: string, usage: BuildUsage) {
+  const translator = new TranslationHelper(locale, {}, lang);
+  const mainStats = loadJSON(usage.buildPath, 'artifacts-mainstats.json')?.main_stats;
+  const substats = loadJSON(usage.buildPath, 'artifacts-substats.json')?.substats_priority;
+
+  if (!mainStats && !substats) return '';
+
+  const buildNotes = loadJSON(usage.buildPath, 'build-notes.json');
+  const buildName = translator.translateNoteText(
+    buildNotes?.name?.[lang] ?? buildNotes?.name?.en ?? toTitleCase(usage.buildName),
+  );
+
+  const slotRows = mainStatSlots
+    .map(({ key, label }) => {
+      const names = (mainStats?.[key] ?? [])
+        .map((item: any) => statName(locale, translator, item))
+        .filter(Boolean);
+
+      return names.length
+        ? `<div class="usage-popover-row"><span class="usage-popover-slot">${escapeHtml(
+            t(locale, 'ui', label, undefined, false),
+          )}</span><span class="usage-popover-value">${escapeHtml(
+            names.join(' / '),
+          )}</span></div>`
+        : '';
+    })
+    .join('');
+
+  const substatChips = (substats ?? [])
+    .map((entry: any, index: number) => {
+      const items = Array.isArray(entry?.items) ? entry.items : [entry];
+      const names = items
+        .map((item: any) => statName(locale, translator, item))
+        .filter(Boolean);
+
+      return names.length
+        ? `<span class="usage-popover-sub"><strong>${index + 1}</strong>${escapeHtml(
+            names.join(' \u2248 '),
+          )}</span>`
+        : '';
+    })
+    .join('');
+
+  return [
+    `<span class="usage-popover-header"><span class="usage-popover-name">${escapeHtml(
+      usage.characterName,
+    )}</span><span class="usage-popover-build">${escapeHtml(buildName)}</span></span>`,
+    slotRows
+      ? `<span class="usage-popover-section"><span class="usage-popover-title">${escapeHtml(
+          t(locale, 'ui', 'Main Stats', undefined, false),
+        )}</span>${slotRows}</span>`
+      : '',
+    substatChips
+      ? `<span class="usage-popover-section"><span class="usage-popover-title">${escapeHtml(
+          t(locale, 'ui', 'Substats', undefined, false),
+        )}</span><span class="usage-popover-subs">${substatChips}</span></span>`
+      : '',
+  ].join('');
+}
+
 /**
  * Loads and localizes every artifact set for the browser grid.
  *
@@ -278,7 +373,10 @@ function getArtifactSetEntries(
       bonuses,
       tags: info.tags ?? [],
       tagGroups: getArtifactSetTagGroups(info.tags ?? []),
-      fourPieceUsage: fourPieceUsageBySet.get(id) ?? [],
+      fourPieceUsage: (fourPieceUsageBySet.get(id) ?? []).map((usage) => ({
+        ...usage,
+        popoverHtml: renderUsagePopoverHtml(locale, lang, usage),
+      })),
     };
   });
 }

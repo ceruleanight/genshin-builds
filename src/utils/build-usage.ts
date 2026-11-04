@@ -12,6 +12,10 @@ export type BuildUsage = {
   href: string;
   isWip?: boolean;
   rank?: number;
+  /** Folder name of the build this chip links to. */
+  buildName: string;
+  /** Absolute path of that build folder, used to read its stat recommendations. */
+  buildPath: string;
 };
 
 type BuildUsageItem = {
@@ -85,15 +89,28 @@ export function getBestBuildUsage(
             href,
             isWip,
             rank,
+            buildName: build.name,
+            buildPath: build.path,
           });
         } else if (existing.isWip && !isWip) {
-          Object.assign(existing, { href, isWip, rank });
+          Object.assign(existing, {
+            href,
+            isWip,
+            rank,
+            buildName: build.name,
+            buildPath: build.path,
+          });
         } else if (
           existing.isWip === isWip &&
           rank !== undefined &&
           (existing.rank === undefined || rank < existing.rank)
         ) {
-          Object.assign(existing, { href, rank });
+          Object.assign(existing, {
+            href,
+            rank,
+            buildName: build.name,
+            buildPath: build.path,
+          });
         }
 
         usageByItem.set(id, usage);
