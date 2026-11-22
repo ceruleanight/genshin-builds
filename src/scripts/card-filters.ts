@@ -10,28 +10,24 @@ const highPriorityImageCount = 4;
 
 const selectors = {
     character: {
-        form: '[data-character-filters]',
         card: '[data-character-card]',
         count: '[data-character-count]',
         empty: '[data-character-empty]',
     },
     weapon: {
-        form: '[data-weapon-filters]',
         card: '[data-weapon-card]',
         count: '[data-weapon-count]',
         empty: '[data-weapon-empty]',
     },
     artifact: {
-        form: '[data-artifact-filters]',
         card: '[data-artifact-card]',
         count: '[data-artifact-count]',
         empty: '[data-artifact-empty]',
     },
 } as const;
 
-const kind = (Object.keys(selectors) as FilterKind[]).find((candidate) =>
-    document.querySelector(selectors[candidate].form),
-);
+const form = document.querySelector<HTMLFormElement>('[data-filter-kind]');
+const kind = form?.dataset.filterKind as FilterKind | undefined;
 
 const cardValue = (card: HTMLElement, name: string) => card.dataset[name] ?? '';
 
@@ -54,7 +50,6 @@ function compareCatalogCards(
 
 if (kind) {
     const selector = selectors[kind];
-    const form = document.querySelector<HTMLFormElement>(selector.form);
     const cards = Array.from(
         document.querySelectorAll<HTMLElement>(selector.card),
     );
@@ -207,9 +202,26 @@ document
                     String(item.dataset.weaponRefinement === refinement),
                 ),
             );
-        card
-            .querySelectorAll<HTMLElement>('[data-weapon-refinement-panel]')
-            .forEach((panel) => {
-                panel.hidden = panel.dataset.weaponRefinementPanel !== refinement;
+        const panel = card.querySelector<HTMLElement>(
+            '[data-weapon-refinement-panel]',
+        );
+        if (!panel) return;
+
+        panel.dataset.weaponRefinementPanel = refinement;
+        const valuesByPlaceholder = JSON.parse(
+            panel.dataset.refinementValues ?? '[]',
+        );
+        const refinementIndex = Number(refinement.slice(1)) - 1;
+        panel
+            .querySelectorAll<HTMLElement>('[data-refinement-value-index]')
+            .forEach((value) => {
+                const values =
+                    valuesByPlaceholder[
+                        Number(value.dataset.refinementValueIndex)
+                    ];
+                const selectedValue = values?.[refinementIndex];
+                value.textContent = Array.isArray(selectedValue)
+                    ? selectedValue.join('/')
+                    : String(selectedValue ?? '');
             });
     });
