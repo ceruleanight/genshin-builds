@@ -183,6 +183,55 @@
     transparent;
 }
 
+.browser-usage-item {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.browser-usage-item .browser-usage-chip {
+  min-width: 0;
+}
+
+/* Touch-only preview button; hover-capable devices use the hover card. */
+.browser-usage-preview {
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .browser-usage-chip.has-preview {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .browser-usage-preview {
+    display: inline-flex;
+    flex: none;
+    width: 34px;
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--rarity) 52%, transparent);
+    border-left-color: color-mix(in srgb, var(--rarity) 28%, transparent);
+    border-radius: 0 7px 7px 0;
+    padding: 0;
+    background: color-mix(in srgb, var(--rarity) 16%, transparent);
+    color: color-mix(in srgb, #fff 84%, var(--rarity) 16%);
+    cursor: pointer;
+  }
+
+  .browser-usage-preview[data-wip="true"] {
+    --rarity: #9ca3af;
+    filter: grayscale(0.65);
+    opacity: 0.72;
+  }
+
+  .browser-usage-preview[aria-expanded="true"] {
+    border-color: color-mix(in srgb, var(--rarity) 78%, white 8%);
+    background: color-mix(in srgb, var(--rarity) 34%, transparent);
+  }
+}
+
 .browser-usage-chip {
   display: inline-flex;
   max-width: 100%;

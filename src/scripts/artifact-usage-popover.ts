@@ -12,11 +12,22 @@ card.setAttribute('role', 'tooltip');
 document.body.append(card);
 
 let activeChip: HTMLElement | null = null;
+let activeButton: HTMLElement | null = null;
 
 const getChip = (target: EventTarget | null) =>
     target instanceof Element
         ? target.closest<HTMLElement>('[data-usage-popover-html]')
         : null;
+
+const getPreviewButton = (target: EventTarget | null) =>
+    target instanceof Element
+        ? target.closest<HTMLElement>('[data-usage-preview]')
+        : null;
+
+const getChipForButton = (button: HTMLElement) =>
+    button.parentElement?.querySelector<HTMLElement>(
+        '[data-usage-popover-html]',
+    ) ?? null;
 
 function position(chip: HTMLElement) {
     const chipRect = chip.getBoundingClientRect();
@@ -38,10 +49,13 @@ function position(chip: HTMLElement) {
     card.style.top = `${top}px`;
 }
 
-function show(chip: HTMLElement) {
+function show(chip: HTMLElement, button: HTMLElement | null = null) {
     const html = chip.dataset.usagePopoverHtml;
     if (!html) return;
 
+    activeButton?.setAttribute('aria-expanded', 'false');
+    activeButton = button;
+    activeButton?.setAttribute('aria-expanded', 'true');
     activeChip = chip;
     card.innerHTML = html;
     card.classList.remove('character-rarity-4', 'character-rarity-5');
@@ -56,7 +70,9 @@ function show(chip: HTMLElement) {
 
 function hide() {
     activeChip?.removeAttribute('aria-describedby');
+    activeButton?.setAttribute('aria-expanded', 'false');
     activeChip = null;
+    activeButton = null;
     if (card.matches(':popover-open')) card.hidePopover();
 }
 
@@ -68,11 +84,30 @@ document.addEventListener('pointerover', (event) => {
 });
 
 document.addEventListener('pointerout', (event) => {
+    if ((event as PointerEvent).pointerType === 'touch') return;
     if (!activeChip) return;
 
     const next = event.relatedTarget;
     if (next instanceof Node && activeChip.contains(next)) return;
 
+    hide();
+});
+
+document.addEventListener('click', (event) => {
+    const button = getPreviewButton(event.target);
+    if (!button) return;
+
+    event.preventDefault();
+    const chip = getChipForButton(button);
+    if (!chip) return;
+
+    if (activeButton === button) hide();
+    else show(chip, button);
+});
+
+// Tap elsewhere dismisses; taps on a preview button are left to its click handler so it can toggle.
+document.addEventListener('pointerdown', (event) => {
+    if (!activeButton || getPreviewButton(event.target)) return;
     hide();
 });
 

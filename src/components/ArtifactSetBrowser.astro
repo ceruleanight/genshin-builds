@@ -58,6 +58,7 @@ const sortOptions = [
   { value: 'name', label: `${artifactSetsLabel} - A-Z` },
   { value: 'release', label: `${releaseDateLabel} - ${newestLabel}` },
 ];
+const previewLabel = t(locale, 'ui', 'Preview', undefined, false);
 const mentionedOnLabel = t(locale, 'ui', 'Artifact set mentioned on', undefined, false);
 const noMentionsLabel = t(locale, 'ui', 'No artifact set mentions', undefined, false);
 const filterFields = [
@@ -166,18 +167,37 @@ const filterFields = [
             {artifactSet.fourPieceUsage.length > 0 ? (
               <div class="browser-usage-list">
                 {artifactSet.fourPieceUsage.map((usage) => (
-                  <a
-                    class="browser-usage-chip"
-                    href={usage.href}
-                    data-rarity={usage.characterRarity}
-                    data-wip={usage.isWip}
-                    data-usage-popover-html={usage.popoverHtml || undefined}
-                  >
-                    {(usage.rank || usage.isWip) && (
-                      <strong class="usage-rank-number">{usage.isWip ? 'WIP' : usage.rank}</strong>
+                  <span class="browser-usage-item">
+                    <a
+                      class={`browser-usage-chip${usage.popoverHtml ? ' has-preview' : ''}`}
+                      href={usage.href}
+                      data-rarity={usage.characterRarity}
+                      data-wip={usage.isWip}
+                      data-usage-popover-html={usage.popoverHtml || undefined}
+                    >
+                      {(usage.rank || usage.isWip) && (
+                        <strong class="usage-rank-number">{usage.isWip ? 'WIP' : usage.rank}</strong>
+                      )}
+                      <span class="browser-usage-character">{usage.characterName}</span>
+                    </a>
+                    {usage.popoverHtml && (
+                      <button
+                        type="button"
+                        class="browser-usage-preview"
+                        data-rarity={usage.characterRarity}
+                        data-wip={usage.isWip}
+                        data-usage-preview
+                        aria-expanded="false"
+                        aria-label={`${previewLabel}: ${usage.characterName}`}
+                      >
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                          <circle cx="8" cy="8" r="6.2" />
+                          <path d="M8 7.2v4" />
+                          <path d="M8 4.7v.1" />
+                        </svg>
+                      </button>
                     )}
-                    <span class="browser-usage-character">{usage.characterName}</span>
-                  </a>
+                  </span>
                 ))}
               </div>
             ) : (
