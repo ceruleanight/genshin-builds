@@ -85,17 +85,23 @@ const cards = characters.map((character) => ({
 
     <div class="plan-toolbar roster-toolbar">
         <h2>{ui('Plan heading')}</h2>
+        <label class="filter-field field-search plan-search">
+            {ui('Plan search')}
+            <input type="search" data-plan-search autocomplete="off" />
+        </label>
         <label class="filter-field filter-sort">
             {ui('Sort by')}
             <select class="filter-select" data-character-sort autocomplete="off">
                 <option value="release" selected>{ui('Release date')}</option>
                 <option value="name">{ui('Alphabetical')}</option>
+                <option value="rarity">{ui('Rarity')}</option>
                 <option value="weapon">{ui('Weapon')}</option>
             </select>
         </label>
     </div>
 
     <p class="roster-hint" data-plan-empty>{ui('Plan no characters')}</p>
+    <p class="roster-hint" data-plan-search-empty hidden>{ui('Plan search empty')}</p>
     <div class="plan-grid" data-plan-grid>
         {cards.map(({ character }) => (
             <article
@@ -119,19 +125,34 @@ const cards = characters.map((character) => ({
                 <section class="plan-options">
                     <h4>{ui('Artifacts Sets')}</h4>
                     {character.sets.length === 0 && <p>{ui('Plan no sets')}</p>}
-                    {character.sections.filter(({ sets }) => sets.length > 0).map(({ sets, label }) => (
-                        <div class="plan-option-row">
-                            <h5>{label}</h5>
-                            <div class="roster-chips">
-                                {sets.map((set) => (
-                                    <button type="button" class="roster-button" data-plan-set data-key={set.key} aria-pressed="false">
-                                        {set.image && <img src={set.image} width="22" height="22" alt="" loading="lazy" decoding="async" />}
-                                        {(set.rank || set.isWip) && <strong class="plan-rank">{set.isWip ? ui('Plan WIP') : set.rank}</strong>}
-                                        {set.name}
-                                    </button>
-                                ))}
+                    {character.sections.filter(({ sets }) => sets.length > 0).map(({ sets, label, pieces }) => (
+                        pieces === 2 ? (
+                            <details class="plan-option-row plan-two-piece">
+                                <summary>{label}</summary>
+                                <div class="roster-chips">
+                                    {sets.map((set) => (
+                                        <button type="button" class="roster-button" data-plan-set data-key={set.key} aria-pressed="false">
+                                            {set.image && <img src={set.image} width="22" height="22" alt="" loading="lazy" decoding="async" />}
+                                            {(set.rank || set.isWip) && <strong class="plan-rank">{set.isWip ? ui('Plan WIP') : set.rank}</strong>}
+                                            {set.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </details>
+                        ) : (
+                            <div class="plan-option-row">
+                                <h5>{label}</h5>
+                                <div class="roster-chips">
+                                    {sets.map((set) => (
+                                        <button type="button" class="roster-button" data-plan-set data-key={set.key} aria-pressed="false">
+                                            {set.image && <img src={set.image} width="22" height="22" alt="" loading="lazy" decoding="async" />}
+                                            {(set.rank || set.isWip) && <strong class="plan-rank">{set.isWip ? ui('Plan WIP') : set.rank}</strong>}
+                                            {set.name}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )
                     ))}
                 </section>
                 <section class="plan-options">

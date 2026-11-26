@@ -123,6 +123,8 @@
     "Plan WIP": "В работе",
     "Roster selected": "Выбрано персонажей",
     "Roster search": "Поиск персонажей",
+    "Plan search": "Поиск среди добавленных персонажей",
+    "Plan search empty": "Среди добавленных персонажей ничего не найдено.",
     "Roster select all": "Выбрать всех",
     "Roster clear": "Очистить выбор",
     "Roster transfer": "Импорт и экспорт списка",

@@ -119,6 +119,8 @@
     "Plan WIP": "In lavorazione",
     "Roster selected": "Personaggi selezionati",
     "Roster search": "Cerca personaggi",
+    "Plan search": "Cerca tra i personaggi aggiunti",
+    "Plan search empty": "Nessun personaggio aggiunto corrisponde alla ricerca.",
     "Roster select all": "Seleziona tutti",
     "Roster clear": "Cancella la selezione",
     "Roster transfer": "Importa o esporta la lista",

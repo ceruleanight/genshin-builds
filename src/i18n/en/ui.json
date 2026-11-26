@@ -123,6 +123,8 @@
     "Plan WIP": "WIP",
     "Roster selected": "Characters selected",
     "Roster search": "Search characters",
+    "Plan search": "Search added characters",
+    "Plan search empty": "No added characters match your search.",
     "Roster select all": "Select all",
     "Roster clear": "Clear selection",
     "Roster transfer": "Import or export roster",

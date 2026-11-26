@@ -8,12 +8,14 @@ function initPlanner(root: HTMLElement) {
     const grid = root.querySelector<HTMLElement>('[data-plan-grid]');
     const sort = root.querySelector<HTMLSelectElement>('[data-character-sort]');
     const search = root.querySelector<HTMLInputElement>('[data-roster-search]');
+    const planSearch = root.querySelector<HTMLInputElement>('[data-plan-search]');
     const transfer = root.querySelector<HTMLTextAreaElement>('[data-roster-transfer]');
     const file = root.querySelector<HTMLInputElement>('[data-roster-file]');
     const status = root.querySelector<HTMLElement>('[data-roster-status]');
     const count = root.querySelector<HTMLElement>('[data-roster-count]');
     const empty = root.querySelector<HTMLElement>('[data-plan-empty]');
-    if (!grid || !sort || !search || !transfer || !file || !status || !count || !empty) return;
+    const searchEmpty = root.querySelector<HTMLElement>('[data-plan-search-empty]');
+    if (!grid || !sort || !search || !planSearch || !transfer || !file || !status || !count || !empty || !searchEmpty) return;
 
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('[data-plan-card]'));
     const byId = new Map(cards.map((card) => [card.dataset.id ?? '', card]));
@@ -49,6 +51,10 @@ function initPlanner(root: HTMLElement) {
     function scheduleCardLayout() {
         cancelAnimationFrame(layoutFrame);
         layoutFrame = requestAnimationFrame(layoutCards);
+    }
+
+    for (const disclosure of grid.querySelectorAll<HTMLDetailsElement>('.plan-two-piece')) {
+        disclosure.addEventListener('toggle', scheduleCardLayout);
     }
 
     function cleanPlan(card: HTMLElement, plan: Plan): Plan {
@@ -90,12 +96,15 @@ function initPlanner(root: HTMLElement) {
         if (!count || !empty) return;
         count.textContent = String(owned.size);
         empty.hidden = owned.size > 0;
+        const query = planSearch.value.trim().toLowerCase();
+        let visibleCount = 0;
         for (const chip of roster) {
             chip.setAttribute('aria-pressed', String(owned.has(chip.dataset.id ?? '')));
         }
         for (const [id, card] of byId) {
-            card.hidden = !owned.has(id);
+            card.hidden = !owned.has(id) || !card.dataset.name?.toLowerCase().includes(query);
             if (card.hidden) continue;
+            visibleCount += 1;
             const plan = getPlan(id);
             for (const chip of card.querySelectorAll<HTMLButtonElement>('[data-plan-set], [data-plan-stat]')) {
                 const { key, slot, stat } = chip.dataset;
@@ -103,6 +112,7 @@ function initPlanner(root: HTMLElement) {
                 chip.setAttribute('aria-pressed', String(Boolean(selected)));
             }
         }
+        searchEmpty.hidden = owned.size === 0 || visibleCount > 0;
         layoutCards();
     }
 
@@ -225,6 +235,7 @@ function initPlanner(root: HTMLElement) {
         file.value = '';
     });
     search.addEventListener('input', searchRoster);
+    planSearch.addEventListener('input', render);
     sort.addEventListener('change', sortCards);
     window.addEventListener('resize', scheduleCardLayout);
     window.addEventListener('storage', (event) => {

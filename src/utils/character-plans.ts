@@ -81,7 +81,7 @@ export function getCharacterPlanData(lang: string) {
     });
     const slots = getAllBuildMainStatSlots(locale, translator, builds.map((build) => build.path));
     const defaults: Plan = {
-      sets: sections.flatMap(({ sets }) => {
+      sets: sections.filter(({ pieces }) => pieces === 4).flatMap(({ sets }) => {
         const first = sets.find((set) => !set.isWip);
         return first ? [first.key] : [];
       }),
