@@ -42,16 +42,14 @@
 .browser-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .browser-entry {
   position: relative;
   display: grid;
   min-width: 0;
-  height: 100%;
   gap: 12px;
   border-radius: 8px;
   padding: 14px;
@@ -154,7 +152,7 @@
   display: grid;
   min-width: 0;
   gap: 8px;
-  grid-template-rows: auto minmax(0, 78px);
+  grid-template-rows: auto auto;
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 8px;
   padding: 9px;
@@ -172,11 +170,11 @@
 
 .browser-usage-list {
   display: flex;
-  height: 78px;
+  max-height: 78px;
   min-height: 0;
   align-content: flex-start;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   overflow: auto;
   padding-right: 2px;
   scrollbar-color: color-mix(in srgb, var(--rarity) 44%, transparent)
@@ -288,7 +286,7 @@
 }
 
 .browser-usage-empty {
-  height: 78px;
+  max-height: 78px;
   min-height: 0;
   margin: 0;
   overflow: auto;
@@ -304,7 +302,7 @@
 
 .artifact-set-effect {
   display: grid;
-  height: 250px;
+  max-height: 250px;
   min-height: 0;
   gap: 10px;
   overflow: auto;
@@ -505,16 +503,16 @@
   }
 
   .artifact-set-effect {
-    height: 280px;
+    max-height: 280px;
   }
 
   .browser-usage {
-    grid-template-rows: auto minmax(0, 86px);
+    grid-template-rows: auto auto;
   }
 
   .browser-usage-list,
   .browser-usage-empty {
-    height: 86px;
+    max-height: 86px;
   }
 
   .artifact-set-pieces {
@@ -639,4 +637,92 @@
 .usage-popover-sub strong {
     color: var(--usage-popover-accent);
     font-weight: 900;
+}
+
+.artifact-roster-bar .filter-sort {
+  margin: 0;
+}
+
+.roster-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.artifact-owned {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.artifact-owned h3,
+.artifact-owned h4 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.artifact-owned ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.artifact-owned .artifact-owned-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.artifact-owned-names li {
+  min-width: 0;
+}
+
+.artifact-owned-names a {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.artifact-owned-stat {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.artifact-owned-stat strong {
+  font-weight: 800;
+}
+
+.artifact-owned-rank {
+  flex: 0 0 2ch;
+  color: var(--rarity);
+  font-variant-numeric: tabular-nums;
+}
+
+.artifact-owned-who {
+  color: color-mix(in srgb, var(--text) 75%, transparent);
+  font-weight: 400;
+}
+
+.artifact-owned-substats {
+  display: grid;
+  gap: 3px;
+}
+
+.artifact-owned-ignored {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  color: color-mix(in srgb, var(--text) 75%, transparent);
+  font-size: 0.84rem;
+}
+
+[data-hide-names] .artifact-owned .artifact-owned-names,
+[data-hide-names] .artifact-owned-who,
+body[data-hide-ranked] .browser-usage {
+  display: none;
 }

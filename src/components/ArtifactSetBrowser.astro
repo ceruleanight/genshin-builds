@@ -1,47 +1,18 @@
 ---
 import { Image } from 'astro:assets';
-import type { AssetImage } from '../utils/item-assets';
-import { t } from '../utils/i18n';
+import { t, type getLocale } from '../utils/i18n';
+import type { getArtifactSetBrowserData } from '../utils/artifact-browser';
 import Filters from './Filters.astro';
 import SortBy from './SortBy.astro';
 
-type ArtifactSetBrowserData = {
-  artifactSets: {
-    id: string;
-    image: AssetImage | '';
-    name: string;
-    rarity: number;
-    versionReleased: string;
-    bonuses: {
-      id: string;
-      label: string;
-      html: string;
-    }[];
-    tags: string[];
-    tagGroups: string[];
-    fourPieceUsage: {
-      characterName: string;
-      characterRarity: string;
-      href: string;
-      isWip?: boolean;
-      rank?: number;
-      popoverHtml?: string;
-    }[];
-  }[];
-  rarities: number[];
-  tagOptionGroups: {
-    label: string;
-    options: {
-      id: string;
-      label: string;
-    }[];
-  }[];
-};
+interface Props {
+  data: ReturnType<typeof getArtifactSetBrowserData>;
+  locale: ReturnType<typeof getLocale>;
+  charactersHref: string;
+}
 
-const { data, locale } = Astro.props as {
-  data: ArtifactSetBrowserData;
-  locale: any;
-};
+const { data, locale, charactersHref } = Astro.props;
+const ui = (id: string) => t(locale, 'ui', id);
 
 const allLabel = t(locale, 'ui', 'All');
 const resultsLabel = t(locale, 'ui', 'Results');
@@ -100,6 +71,50 @@ const filterFields = [
 ---
 
 <section class="artifact-set-browser" data-artifact-browser>
+  <div
+    class="roster-panel artifact-roster-bar"
+    data-artifact-roster
+    data-defaults={JSON.stringify(data.characterDefaults)}
+    data-ignored-substats={JSON.stringify(data.ignoredSubstats)}
+    data-no-characters={ui('Roster no characters')}
+    data-not-needed={ui('Roster not needed')}
+    data-label-two={ui('Plan two piece')}
+    data-label-four={ui('Plan four piece')}
+    data-label-substats-needed={ui('Substats needed')}
+    data-label-substats-ignored={ui('Substats can be ignored')}
+  >
+    <div class="roster-toolbar">
+      <p>{ui('Roster selected')} <strong data-roster-count aria-live="polite">0</strong></p>
+      <a href={charactersHref}>{ui('Plan edit')}</a>
+    </div>
+    <div class="roster-toolbar">
+      <div class="roster-chips" role="group" aria-label={ui('Roster view')}>
+        {[['needed', 'Roster keep'], ['unneeded', 'Roster remove'], ['', 'All']].map(([value, label]) => (
+          <button class="roster-button" type="button" data-artifact-view={value} aria-pressed={value === '' ? 'true' : 'false'}>
+            {ui(label)} <span data-view-count></span>
+          </button>
+        ))}
+      </div>
+      <label class="filter-field filter-sort">
+        {ui('Roster stats shown')}
+        <select class="filter-select" data-artifact-stat-mode>
+          <option value="all">{ui('Roster stats all')}</option>
+          <option value="top">{ui('Roster stats top')}</option>
+        </select>
+      </label>
+      <label class="roster-checkbox">
+        <input type="checkbox" data-artifact-hide-names /> {ui('Roster hide names')}
+      </label>
+      <label class="roster-checkbox">
+        <input type="checkbox" data-artifact-hide-ranked /> {ui('Roster hide ranked')}
+      </label>
+    </div>
+    <select name="roster" form="artifact-set-filters" data-artifact-roster-filter hidden>
+      <option value=""></option>
+      <option value="needed"></option>
+      <option value="unneeded"></option>
+    </select>
+  </div>
   <Filters
     id="artifact-set-filters"
     kind="artifact"
@@ -122,6 +137,7 @@ const filterFields = [
           class="browser-entry"
           data-artifact-card
           data-id={artifactSet.id}
+          data-usage-json={JSON.stringify(artifactSet.ownedUsage)}
           data-name={artifactSet.name}
           data-rarity={artifactSet.rarity}
           data-tags={artifactSet.tags.join(' ')}
@@ -204,6 +220,11 @@ const filterFields = [
               <p class="browser-usage-empty">{noMentionsLabel}</p>
             )}
           </section>
+
+          <section class="artifact-owned">
+            <h3>{ui('Roster owned usage')}</h3>
+            <div data-artifact-owned></div>
+          </section>
         </article>
       ))
     }
@@ -215,4 +236,5 @@ const filterFields = [
 <script>
   import '../scripts/card-filters';
   import '../scripts/artifact-usage-popover';
+  import '../scripts/artifact-roster';
 </script>

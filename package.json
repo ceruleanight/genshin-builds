@@ -17,6 +17,7 @@
         "project:sync:apply": "node scripts/sync-build-project.mjs --apply"
     },
     "dependencies": {
+        "@pagefind/component-ui": "^1.6.0",
         "astro": "^7.2.0",
         "astro-pagefind": "^2.0.1",
         "marked": "^18.0.3",

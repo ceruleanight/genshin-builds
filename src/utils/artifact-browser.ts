@@ -1,5 +1,7 @@
 import path from 'path';
-import translationAliases from '../data/translation-aliases.json';
+import { getCharacterPlanData } from './character-plans';
+import { collectSetItems, normalizeSetId } from './artifact-set-items';
+import { getBuildMainStatSlots, statName, type RankedStat, type RankedSubstat } from './build-stats';
 import {
   getBestBuildUsage,
   getWipNoteItems,
@@ -9,6 +11,17 @@ import { loadJSON, readJSONFile, toTitleCase } from './content';
 import { getLocale, t } from './i18n';
 import { TranslationHelper } from './translator';
 import { resolveArtifactAssetImage } from './item-assets';
+
+export type OwnedSetUsage = {
+  characterId: string;
+  characterName: string;
+  characterRarity: string;
+  href: string;
+  isWip: boolean;
+  pieces: number;
+  slots: { key: string; label: string; stats: RankedStat[] }[];
+  substats: RankedSubstat[];
+};
 
 const bonusKeys = ['1p', '2p', '4p'] as const;
 
@@ -126,13 +139,6 @@ const tagOptionGroups = [
 const tagGroups = tagOptionGroups.flatMap((group) => group.options);
 
 /**
- * Translation aliases relevant to canonicalizing artifact set recommendation IDs.
- */
-type TranslationAliasCategory = Partial<Record<'set', Record<string, string>>>;
-
-const aliases = translationAliases as TranslationAliasCategory;
-
-/**
  * Localized bonus text as stored in `artifact_sets.json`.
  *
  * English is treated as the fallback language when a requested locale is
@@ -155,41 +161,6 @@ type ArtifactSetData = {
   '4p'?: LocalizedArtifactEffect;
 };
 
-/**
- * Extracts a canonical set ID from one artifact recommendation item.
- *
- * @param item Raw artifact set item from `artifacts-sets.json`.
- * @returns Canonical artifact set ID, or null when the item is unusable.
- */
-function normalizeArtifactSetItemId(item: any) {
-  const setId = item?.name;
-
-  if (typeof setId !== 'string' || !setId.trim()) {
-    return null;
-  }
-
-  return aliases.set?.[setId] ?? setId;
-}
-
-/**
- * Returns every direct item list attached to one artifact recommendation group.
- *
- * Groups can hold a plain `items` list, nested `choices`, or both.
- *
- * @param group Raw artifact recommendation group.
- * @returns Flat list of raw artifact set items.
- */
-function getArtifactSetItems(group: any) {
-  const items = Array.isArray(group?.items) ? group.items : [];
-  const choiceItems = Array.isArray(group?.choices)
-    ? group.choices.flatMap((choice: any) =>
-        Array.isArray(choice?.items) ? choice.items : [],
-      )
-    : [];
-
-  return [...items, ...choiceItems];
-}
-
 function getArtifactSetTagGroups(tags: string[]) {
   const tagSet = new Set(tags);
 
@@ -211,30 +182,13 @@ function getArtifactSetTagGroups(tags: string[]) {
  */
 function getArtifactSetFourPieceUsage(locale: any, lang: string) {
   return getBestBuildUsage(locale, lang, (buildPath, buildNotes) => {
-    const data = loadJSON(buildPath, 'artifacts-sets.json');
-    const groups = [
-      ...(data?.artifact_sets?.flatMap((entry: any, index: number) =>
-        (entry.groups ?? []).map((group: any) => ({
-          group,
-          rank: index + 1,
-        })),
-      ) ?? []),
-      ...(data?.conditional?.flatMap((entry: any) =>
-        (entry.groups ?? [entry]).map((group: any) => ({ group })),
-      ) ?? []),
-    ];
-
     return [
-      ...groups.flatMap(({ group, rank }) =>
-        getArtifactSetItems(group)
-          .filter((item) => Number(item?.pieces) === 4)
-          .map((item) => ({ id: normalizeArtifactSetItemId(item), rank })),
-      ),
+      ...collectSetItems(loadJSON(buildPath, 'artifacts-sets.json'), 4),
       ...getWipNoteItems(
         buildNotes,
         'artifact',
         'set',
-        (id) => aliases.set?.[id] ?? id,
+        normalizeSetId,
       ),
     ];
   });
@@ -247,26 +201,6 @@ function escapeHtml(value: unknown) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-const mainStatSlots = [
-  { key: 'sands', label: 'Sands' },
-  { key: 'goblet', label: 'Goblet' },
-  { key: 'circlet', label: 'Circlet' },
-] as const;
-
-/**
- * Reads a stat entry (a plain ID, `{ name }`, or a name containing inline
- * `[[stat:id]]` tokens) and returns its plain display text.
- */
-function statName(locale: any, translator: TranslationHelper, item: any) {
-  const name = typeof item === 'string' ? item : item?.name;
-
-  if (typeof name !== 'string') return '';
-
-  return name.includes('[[')
-    ? translator.translateNoteText(name)
-    : t(locale, 'stat', name, undefined, false);
 }
 
 /**
@@ -286,20 +220,9 @@ function renderUsagePopoverHtml(locale: any, lang: string, usage: BuildUsage) {
     buildNotes?.name?.[lang] ?? buildNotes?.name?.en ?? toTitleCase(usage.buildName),
   );
 
-  const slotRows = mainStatSlots
-    .map(({ key, label }) => {
-      const names = (mainStats?.[key] ?? [])
-        .map((item: any) => statName(locale, translator, item))
-        .filter(Boolean);
-
-      return names.length
-        ? `<div class="usage-popover-row"><span class="usage-popover-slot">${escapeHtml(
-            t(locale, 'ui', label, undefined, false),
-          )}</span><span class="usage-popover-value">${escapeHtml(
-            names.join(' / '),
-          )}</span></div>`
-        : '';
-    })
+  const slotRows = getBuildMainStatSlots(locale, translator, usage.buildPath)
+    .filter((slot) => slot.value)
+    .map((slot) => `<div class="usage-popover-row"><span class="usage-popover-slot">${escapeHtml(slot.label)}</span><span class="usage-popover-value">${escapeHtml(slot.value)}</span></div>`)
     .join('');
 
   const substatChips = (substats ?? [])
@@ -390,11 +313,28 @@ function getArtifactSetEntries(
 export function getArtifactSetBrowserData(lang = 'en') {
   const locale = getLocale(lang);
   const fourPieceUsageBySet = getArtifactSetFourPieceUsage(locale, lang);
+  const characters = getCharacterPlanData(lang);
+  const characterDefaults = Object.fromEntries(characters.map(({ id, defaults }) => [id, defaults]));
+  const ownedUsage = new Map<string, OwnedSetUsage[]>();
+  for (const character of characters) {
+    const slots = character.slots.map(({ key, label, stats }) => ({ key, label, stats }));
+    for (const set of character.sets) {
+      const usage = ownedUsage.get(set.setId) ?? [];
+      usage.push({
+        characterId: character.id, characterName: character.name, characterRarity: character.rarity,
+        href: set.href, isWip: set.isWip, pieces: set.pieces, slots,
+        substats: set.substats,
+      });
+      ownedUsage.set(set.setId, usage);
+    }
+  }
+
   const artifactSets = getArtifactSetEntries(
     locale,
     lang,
     fourPieceUsageBySet,
-  ).sort((a, b) => a.name.localeCompare(b.name));
+  ).map((set) => ({ ...set, ownedUsage: ownedUsage.get(set.id) ?? [] }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const rarities = [
     ...new Set(artifactSets.map((artifactSet) => artifactSet.rarity)),
   ].sort((a, b) => a - b);
@@ -416,6 +356,9 @@ export function getArtifactSetBrowserData(lang = 'en') {
 
   return {
     artifactSets,
+    characterDefaults,
+    ignoredSubstats: ['hp', 'atk', 'def', 'hp%', 'atk%', 'def%', 'em', 'er', 'cr', 'cd']
+      .map((id) => ({ id, label: t(locale, 'stat', id, undefined, false) })),
     lang,
     locale,
     rarities,

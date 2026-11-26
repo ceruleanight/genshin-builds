@@ -23,6 +23,7 @@ export function compareCharacterCards(left, right, sort) {
   }
   if (sort === 'release') {
     return (
+      compareText(value(right, 'releaseDate'), value(left, 'releaseDate')) ||
       compareVersionNewest(
         value(left, 'versionReleased'),
         value(right, 'versionReleased'),
