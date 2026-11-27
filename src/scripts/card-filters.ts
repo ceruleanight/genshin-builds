@@ -1,4 +1,5 @@
 import { compareCharacterCards } from './character-sort.mjs';
+import { parseJson, readPlans, readRoster } from './roster-store';
 
 type FilterKind = 'character' | 'weapon' | 'artifact';
 const sortStorageKeys = {
@@ -31,6 +32,28 @@ const kind = form?.dataset.filterKind as FilterKind | undefined;
 
 const cardValue = (card: HTMLElement, name: string) => card.dataset[name] ?? '';
 
+type ArtifactCharacterUsage = {
+    characterId: string;
+    characterName: string;
+    pieces: number;
+};
+
+function matchesArtifactCharacter(
+    card: HTMLElement,
+    query: string,
+    roster: ReturnType<typeof readRoster> | null,
+    defaults: ReturnType<typeof readPlans>,
+) {
+    if (!roster) return false;
+    const usage = JSON.parse(card.dataset.usageJson ?? '[]') as ArtifactCharacterUsage[];
+    return usage.some((entry) => {
+        if (!entry.characterName.toLowerCase().includes(query)) return false;
+        if (!roster.owned.has(entry.characterId)) return true;
+        const plan = roster.plans[entry.characterId] ?? defaults[entry.characterId];
+        return plan?.sets.includes(`${card.dataset.id}:${entry.pieces}`) ?? false;
+    });
+}
+
 function compareCatalogCards(
     left: HTMLElement,
     right: HTMLElement,
@@ -55,9 +78,53 @@ if (kind) {
     );
     const count = document.querySelector<HTMLElement>(selector.count);
     const empty = document.querySelector<HTMLElement>(selector.empty);
+    const grid = kind === 'artifact' ? cards[0]?.parentElement : null;
+    const artifactSetFilter = kind === 'artifact'
+        ? document.querySelector<HTMLElement>('[data-artifact-set-filter]')
+        : null;
+    const artifactSetOptions = Array.from(
+        artifactSetFilter?.querySelectorAll<HTMLButtonElement>('[data-artifact-set-option]') ?? [],
+    );
+    const artifactSetOptionList = artifactSetFilter?.querySelector<HTMLElement>('.artifact-set-filter-options');
+    const artifactSetSort = artifactSetFilter?.querySelector<HTMLSelectElement>('[data-artifact-set-sort]');
+    const rosterRoot =
+        kind === 'artifact'
+            ? document.querySelector<HTMLElement>('[data-artifact-roster]')
+            : null;
+    const artifactDefaults = readPlans(parseJson(rosterRoot?.dataset.defaults ?? null));
+    const artifactCharacterIds = new Set(Object.keys(artifactDefaults));
     const searchInput = form?.elements.namedItem('search');
     const sortSelect = form?.elements.namedItem('sort');
     const sortStorageKey = sortStorageKeys[kind];
+
+    const layoutArtifactCards = () => {
+        if (!grid) return;
+        grid.classList.remove('is-packed');
+        grid.style.gridAutoRows = 'auto';
+        grid.style.gridAutoFlow = 'row';
+        for (const card of cards) card.style.gridRowEnd = '';
+
+        const visibleCards = cards.filter((card) => !card.hidden);
+        const heights = visibleCards.map((card) => card.getBoundingClientRect().height);
+        const rowGap = Number.parseFloat(getComputedStyle(grid).rowGap) || 0;
+
+        grid.style.gridAutoRows = '1px';
+        grid.style.gridAutoFlow = 'row dense';
+        for (const [index, card] of visibleCards.entries()) {
+            const span = Math.max(1, Math.ceil((heights[index] + rowGap) / (1 + rowGap)));
+            card.style.gridRowEnd = `span ${span}`;
+        }
+        grid.classList.add('is-packed');
+    };
+
+    const sortArtifactSetOptions = () => {
+        if (!artifactSetOptionList || !artifactSetSort) return;
+        artifactSetOptionList.append(
+            ...[...artifactSetOptions].sort((left, right) =>
+                compareCatalogCards(left, right, artifactSetSort.value),
+            ),
+        );
+    };
 
     if (searchInput instanceof HTMLInputElement) {
         const searchParam = new URLSearchParams(window.location.search).get('search');
@@ -133,6 +200,19 @@ if (kind) {
         const search = String(values.search ?? '')
             .trim()
             .toLowerCase();
+        const characterSearch = String(values.character ?? '')
+            .trim()
+            .toLowerCase();
+        const roster = characterSearch && kind === 'artifact'
+            ? readRoster(artifactCharacterIds)
+            : null;
+        const selectedArtifactSets = artifactSetFilter
+            ? new Set(
+                artifactSetOptions
+                    .filter((option) => option.getAttribute('aria-pressed') === 'true')
+                    .map((option) => option.dataset.id ?? ''),
+            )
+            : null;
         let visibleCount = 0;
 
         if (sortSelect instanceof HTMLSelectElement) {
@@ -150,7 +230,13 @@ if (kind) {
         cards.forEach((card) => {
             const matches = Object.entries(values).every(([name, value]) => {
                 const selected = String(value);
-                if (!selected || name === 'search' || name === 'sort') return true;
+                if (
+                    !selected ||
+                    name === 'search' ||
+                    name === 'character' ||
+                    name === 'sort' ||
+                    (characterSearch && name === 'roster')
+                ) return true;
 
                 const key = name === 'updated' ? 'recentUpdated' : name;
                 const cardValue = card.dataset[key] ?? '';
@@ -158,9 +244,20 @@ if (kind) {
                     ? cardValue.split(' ').includes(selected)
                     : cardValue === selected;
             });
+            const characterMatches =
+                !characterSearch ||
+                (kind === 'artifact' &&
+                    matchesArtifactCharacter(
+                        card,
+                        characterSearch,
+                        roster,
+                        artifactDefaults,
+                    ));
             const visible =
                 matches &&
-                (!search || card.dataset.name?.toLowerCase().includes(search));
+                (!search || card.dataset.name?.toLowerCase().includes(search)) &&
+                characterMatches &&
+                (!selectedArtifactSets || selectedArtifactSets.has(card.dataset.id ?? ''));
 
             card.hidden = !visible;
             if (visible) visibleCount += 1;
@@ -170,8 +267,31 @@ if (kind) {
             count.textContent = `${visibleCount} ${count.dataset.resultsLabel ?? ''}`;
         }
         if (empty) empty.hidden = visibleCount > 0;
+        layoutArtifactCards();
         updateVisibleImageLoading();
     };
+
+    artifactSetFilter?.addEventListener('click', (event) => {
+        const target = event.target instanceof Element
+            ? event.target.closest<HTMLButtonElement>('[data-artifact-set-option]')
+            : null;
+        if (!target) return;
+        target.setAttribute('aria-pressed', String(target.getAttribute('aria-pressed') !== 'true'));
+        applyFilters();
+    });
+    artifactSetFilter
+        ?.querySelector<HTMLButtonElement>('[data-artifact-set-select-all]')
+        ?.addEventListener('click', () => {
+            for (const option of artifactSetOptions) option.setAttribute('aria-pressed', 'true');
+            applyFilters();
+        });
+    artifactSetFilter
+        ?.querySelector<HTMLButtonElement>('[data-artifact-set-clear]')
+        ?.addEventListener('click', () => {
+            for (const option of artifactSetOptions) option.setAttribute('aria-pressed', 'false');
+            applyFilters();
+        });
+    artifactSetSort?.addEventListener('change', sortArtifactSetOptions);
 
     form?.addEventListener('change', applyFilters);
     form?.addEventListener('input', applyFilters);
@@ -179,7 +299,11 @@ if (kind) {
     if (sortSelect instanceof HTMLSelectElement) {
         sortSelect.addEventListener('change', applyFilters);
     }
-    window.addEventListener('resize', updateVisibleImageLoading);
+    window.addEventListener('resize', () => {
+        layoutArtifactCards();
+        updateVisibleImageLoading();
+    });
+    sortArtifactSetOptions();
     applyFilters();
 }
 

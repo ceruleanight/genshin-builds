@@ -39,11 +39,134 @@
   display: none;
 }
 
+.artifact-set-filter {
+  margin: 0 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(5, 8, 12, 0.28);
+}
+
+.artifact-set-filter > summary {
+  padding: 9px 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.artifact-set-filter-content {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px;
+}
+
+.artifact-set-filter-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.artifact-set-filter-sort {
+  margin-left: auto;
+}
+
+.artifact-set-filter-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 2px 12px 2px 2px;
+  scrollbar-gutter: stable;
+  scrollbar-color: color-mix(in srgb, var(--accent) 56%, transparent) #0b1c33;
+  scrollbar-width: thin;
+}
+
+.artifact-set-filter-options::-webkit-scrollbar {
+  width: 9px;
+}
+
+.artifact-set-filter-options::-webkit-scrollbar-track {
+  border-radius: 8px;
+  background: #0b1c33;
+}
+
+.artifact-set-filter-options::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 56%, rgba(5, 8, 12, 0.75));
+  background-clip: padding-box;
+}
+
+.artifact-set-filter-options::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 78%, rgba(5, 8, 12, 0.6));
+  background-clip: padding-box;
+}
+
+.artifact-set-filter-option {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: 48px auto;
+  justify-items: center;
+  align-content: start;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 8px 6px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.artifact-set-filter-option:hover {
+  border-color: color-mix(in srgb, var(--accent) 64%, transparent);
+}
+
+.artifact-set-filter-option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, rgba(5, 8, 12, 0.7));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 36%, transparent);
+}
+
+.artifact-set-filter-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.artifact-set-filter-option[aria-pressed='false'] {
+  opacity: 0.64;
+}
+
+.artifact-set-filter-option > span {
+  font-size: 0.76rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.artifact-set-filter-image {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+}
+
+.artifact-set-filter-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .browser-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
+}
+
+.browser-grid.is-packed .browser-entry {
+  align-self: stretch;
 }
 
 .browser-entry {
@@ -643,10 +766,100 @@
   margin: 0;
 }
 
+.artifact-roster-bar {
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.artifact-roster-toolbar {
+  justify-content: space-between;
+  gap: 10px 24px;
+}
+
+.artifact-roster-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.artifact-roster-summary > p {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.artifact-roster-options {
+  display: flex;
+  flex: 1 1 540px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+
+.artifact-roster-options .artifact-roster-stat-mode {
+  flex: 0 1 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.artifact-roster-stat-mode .filter-select {
+  flex: 0 1 155px;
+  width: auto;
+  min-width: 115px;
+}
+
+.artifact-roster-bar .artifact-roster-views {
+  display: flex;
+  width: 100%;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.artifact-roster-views .roster-button {
+  --roster-accent: var(--accent);
+  display: flex;
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  text-align: center;
+}
+
+.artifact-roster-views [data-artifact-view='needed'] {
+  --roster-accent: var(--element);
+}
+
+.artifact-roster-views [data-artifact-view='unneeded'] {
+  --roster-accent: #ef6464;
+}
+
+.artifact-roster-view-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.artifact-roster-view-count {
+  flex: 0 0 auto;
+  font-size: 0.82em;
+  opacity: 0.76;
+  white-space: nowrap;
+}
+
 .roster-checkbox {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .artifact-owned {
@@ -661,6 +874,7 @@
 .artifact-owned h3,
 .artifact-owned h4 {
   margin: 0;
+  padding-top: 5px;
   font-size: 0.88rem;
 }
 
@@ -725,4 +939,28 @@
 [data-hide-names] .artifact-owned-who,
 body[data-hide-ranked] .browser-usage {
   display: none;
+}
+
+@media (max-width: 600px) {
+  .artifact-roster-bar {
+    padding: 10px;
+  }
+
+  .artifact-roster-toolbar {
+    align-items: flex-start;
+  }
+
+  .artifact-roster-options {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  .artifact-roster-views {
+    gap: 6px;
+  }
+
+  .artifact-roster-views .roster-button {
+    padding: 5px 6px;
+    font-size: 0.78rem;
+  }
 }

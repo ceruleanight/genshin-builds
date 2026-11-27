@@ -8,18 +8,21 @@ import SortBy from './SortBy.astro';
 interface Props {
   data: ReturnType<typeof getArtifactSetBrowserData>;
   locale: ReturnType<typeof getLocale>;
-  charactersHref: string;
 }
 
-const { data, locale, charactersHref } = Astro.props;
+const { data, locale } = Astro.props;
 const ui = (id: string) => t(locale, 'ui', id);
 
 const allLabel = t(locale, 'ui', 'All');
 const resultsLabel = t(locale, 'ui', 'Results');
 const noResultsLabel = t(locale, 'ui', 'No artifact sets found', undefined, false);
-const searchByNameLabel = t(locale, 'ui', 'Search by name');
+const artifactSearchLabel = t(locale, 'ui', 'Artifact Search');
+const artifactSearchPlaceholder = t(locale, 'ui', 'Enter artifact name');
+const characterSearchLabel = t(locale, 'ui', 'Character Search');
+const characterSearchPlaceholder = t(locale, 'ui', 'Enter character name');
 const rarityLabel = t(locale, 'ui', 'Rarity');
-const searchLabel = t(locale, 'ui', 'Search');
+const releaseVersionLabel = t(locale, 'ui', 'Release version');
+const alphabeticalLabel = t(locale, 'ui', 'Alphabetical');
 const tagLabel = t(locale, 'ui', 'Set Effect', undefined, false);
 const artifactSetsLabel = t(locale, 'ui', 'Artifacts Sets', undefined, false);
 const sortByLabel = t(locale, 'ui', 'Sort by', undefined, false);
@@ -36,9 +39,15 @@ const filterFields = [
   {
     type: 'search' as const,
     name: 'search',
-    label: searchLabel,
-    placeholder: searchByNameLabel,
+    label: artifactSearchLabel,
+    placeholder: artifactSearchPlaceholder,
     fullWidthOnMobile: true,
+  },
+  {
+    type: 'search' as const,
+    name: 'character',
+    label: characterSearchLabel,
+    placeholder: characterSearchPlaceholder,
   },
   {
     type: 'select' as const,
@@ -68,6 +77,13 @@ const filterFields = [
     ],
   },
 ];
+const artifactSetsForFilter = [...data.artifactSets].sort((left, right) => {
+  const leftVersion = Number.parseFloat(left.versionReleased);
+  const rightVersion = Number.parseFloat(right.versionReleased);
+  const versionOrder = (Number.isFinite(rightVersion) ? rightVersion : Number.NEGATIVE_INFINITY) -
+    (Number.isFinite(leftVersion) ? leftVersion : Number.NEGATIVE_INFINITY);
+  return versionOrder || left.name.localeCompare(right.name);
+});
 ---
 
 <section class="artifact-set-browser" data-artifact-browser>
@@ -83,31 +99,33 @@ const filterFields = [
     data-label-substats-needed={ui('Substats needed')}
     data-label-substats-ignored={ui('Substats can be ignored')}
   >
-    <div class="roster-toolbar">
-      <p>{ui('Roster selected')} <strong data-roster-count aria-live="polite">0</strong></p>
-      <a href={charactersHref}>{ui('Plan edit')}</a>
-    </div>
-    <div class="roster-toolbar">
-      <div class="roster-chips" role="group" aria-label={ui('Roster view')}>
-        {[['needed', 'Roster keep'], ['unneeded', 'Roster remove'], ['', 'All']].map(([value, label]) => (
-          <button class="roster-button" type="button" data-artifact-view={value} aria-pressed={value === '' ? 'true' : 'false'}>
-            {ui(label)} <span data-view-count></span>
-          </button>
-        ))}
+    <div class="roster-toolbar artifact-roster-toolbar">
+      <div class="artifact-roster-summary">
+        <p>{ui('Roster selected')}: <strong data-roster-count aria-live="polite">0</strong></p>
       </div>
-      <label class="filter-field filter-sort">
-        {ui('Roster stats shown')}
-        <select class="filter-select" data-artifact-stat-mode>
-          <option value="all">{ui('Roster stats all')}</option>
-          <option value="top">{ui('Roster stats top')}</option>
-        </select>
-      </label>
-      <label class="roster-checkbox">
-        <input type="checkbox" data-artifact-hide-names /> {ui('Roster hide names')}
-      </label>
-      <label class="roster-checkbox">
-        <input type="checkbox" data-artifact-hide-ranked /> {ui('Roster hide ranked')}
-      </label>
+      <div class="artifact-roster-options">
+        <label class="filter-field filter-sort artifact-roster-stat-mode">
+          <span>{ui('Roster stats shown')}</span>
+          <select class="filter-select" data-artifact-stat-mode>
+            <option value="all">{ui('Roster stats all')}</option>
+            <option value="top">{ui('Roster stats top')}</option>
+          </select>
+        </label>
+        <label class="roster-checkbox">
+          <input type="checkbox" data-artifact-hide-names /> {ui('Roster hide names')}
+        </label>
+        <label class="roster-checkbox">
+          <input type="checkbox" data-artifact-hide-ranked /> {ui('Roster hide ranked')}
+        </label>
+      </div>
+    </div>
+    <div class="roster-chips artifact-roster-views" role="group" aria-label={ui('Roster view')}>
+      {[['', 'All'], ['needed', 'Roster keep'], ['unneeded', 'Roster remove']].map(([value, label]) => (
+        <button class="roster-button" type="button" data-artifact-view={value} aria-pressed={value === '' ? 'true' : 'false'}>
+          <span class="artifact-roster-view-label">{ui(label)}</span>
+          <span class="artifact-roster-view-count">(<span data-view-count></span>)</span>
+        </button>
+      ))}
     </div>
     <select name="roster" form="artifact-set-filters" data-artifact-roster-filter hidden>
       <option value=""></option>
@@ -121,6 +139,50 @@ const filterFields = [
     fields={filterFields}
     mobileColumnMinWidth={150}
   />
+
+  <details class="artifact-set-filter" data-artifact-set-filter>
+    <summary>{ui('Artifact set filter')}</summary>
+    <div class="artifact-set-filter-content">
+      <div class="artifact-set-filter-actions">
+        <button class="roster-button" type="button" data-artifact-set-select-all>{ui('Roster select all')}</button>
+        <button class="roster-button" type="button" data-artifact-set-clear>{ui('Roster clear')}</button>
+        <label class="filter-field filter-sort artifact-set-filter-sort">
+          {ui('Sort by')}
+          <select class="filter-select" data-artifact-set-sort>
+            <option value="release" selected>{releaseVersionLabel}</option>
+            <option value="name">{alphabeticalLabel}</option>
+          </select>
+        </label>
+      </div>
+      <div class="artifact-set-filter-options" role="group" aria-label={ui('Artifact set filter')}>
+        {artifactSetsForFilter.map((artifactSet) => (
+          <button
+            class="artifact-set-filter-option"
+            type="button"
+            data-artifact-set-option
+            data-id={artifactSet.id}
+            data-name={artifactSet.name}
+            data-version-released={artifactSet.versionReleased}
+            aria-pressed="true"
+          >
+            <div class={`artifact-set-filter-image${artifactSet.image ? '' : ' is-empty'}`}>
+              {artifactSet.image && (
+                <Image
+                  src={artifactSet.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  width={48}
+                  height={48}
+                />
+              )}
+            </div>
+            <span>{artifactSet.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </details>
 
   <div class="browser-results-header">
     <p data-artifact-count data-results-label={resultsLabel} aria-live="polite">

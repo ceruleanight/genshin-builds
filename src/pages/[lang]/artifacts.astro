@@ -6,7 +6,7 @@ import '../../styles/common.css';
 import '../../styles/browsers.css';
 import '../../styles/roster.css';
 import { t } from '../../utils/i18n';
-import { localizedPath, sitePath } from '../../utils/paths';
+import { sitePath } from '../../utils/paths';
 import { getLanguageStaticPaths } from '../../utils/routes';
 import { getArtifactSetBrowserData } from '../../utils/artifact-browser';
 
@@ -32,7 +32,7 @@ const title = t(locale, 'ui', 'Artifacts Sets');
     <Header locale={locale} lang={data.lang} page="artifacts" />
     <main>
       <h1>{title}</h1>
-      <ArtifactSetBrowser data={data} locale={locale} charactersHref={localizedPath(data.lang, 'characters')} />
+      <ArtifactSetBrowser data={data} locale={locale} />
     </main>
     <Footer lang={data.lang} />
   </body>
